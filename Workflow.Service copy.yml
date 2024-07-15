@@ -1,0 +1,81 @@
+# This workflow will build and push a new container image to Amazon ECR,
+# and then will deploy the container to Amazon ECS Farget claster, when there is a push to the "main" branch.
+#
+#
+
+name: Build and Deploy Node.js Apps Image to AWS
+
+on:
+  push:
+    branches: ["main"]
+    # paths:
+    #   - apps/**
+    #   - infra/services/Dockerfile.NodeApps
+    #   - .github/workflows/Workflow.NodeApps.dev.yml
+  # pull_request:
+  #   branches: ["develop"]
+  #   paths:
+  #     - apps/**
+  #     - infra/services/Dockerfile.NodeApps
+  #     - .github/workflows/Workflow.NodeApps.dev.yml
+
+env:
+  ECR_REPOSITORY: alj-g-service-repo.dev # set this to your Amazon ECR repository name 2
+  AWS_REGION: us-west-2 # set this to your Amazon ECS service name
+
+jobs:
+  deploy-apps-service:
+    name: deploy-apps-service
+    runs-on: ubuntu-latest # Support GitHub runner: https://github.com/actions/runner-images
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Display structure of downloaded files
+        run: ls
+
+      - name: Update .env.local file for deployment domain
+        run: |
+          cat apps/.env.local
+          sed -i 's/wjoBS9gYuUMB2mRhbStS21dJahCc94NI/w9K6LF3MUQjMOt5LFXVNJi1nf1ALgbKM/' apps/.env.local
+          cat apps/.env.local
+          cat apps/next.config.js
+
+      # - name: Build node_module
+      #   run: |
+      #     node -v
+      #     cd apps
+      #     ls
+      #     npm ci
+      #     ls
+      #     cd ..
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: g-apps-service-${{ github.sha }}
+        run: |
+          docker build -f ./Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Deploy Amazon ECS task definition
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: g-apps-service-${{ github.sha }}
+        run: |
+          aws cloudformation update-stack --stack-name g-apps-http-dev --use-previous-template --parameters ParameterKey=Image,ParameterValue=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
