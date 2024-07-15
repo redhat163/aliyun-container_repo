@@ -7,8 +7,9 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
-
+    name: deploy-service
+    runs-on: ubuntu-latest # Support GitHub runner: https://github.com/actions/runner-images
+    environment: production
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
