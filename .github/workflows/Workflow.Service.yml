@@ -22,7 +22,8 @@ jobs:
         # run: echo "Ny@12345678" | docker login --username=tiancai@5391368636165801 registry-intl.cn-hangzhou.aliyuncs.com --password-stdin
         run: |
           echo "Ny@12345678" | docker login --username=tiancai@5391368636165801 registry-intl.cn-hangzhou.aliyuncs.com --password-stdin
-          docker buildx build -f ./Dockerfile -t g-gateway-svc:latest .
+          docker build -f ./Dockerfile -t g-gateway-svc:latest .
+          docker images
           docker tag g-gateway-svc:latest registry-intl.cn-hangzhou.aliyuncs.com/g-services/g-services-repo:g-gateway-svc-20240715.3
           docker push registry-intl.cn-hangzhou.aliyuncs.com/g-services/g-services-repo:g-gateway-svc-20240715.3
 
