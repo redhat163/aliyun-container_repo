@@ -23,7 +23,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: ${{ secrets.ACR_SERVER }}/your-repo/your-image:latest
+          tags: ${{ secrets.ACR_SERVER }}/your-repo/g-services/g-services-repo:g-gateway-svc:120
 
       - name: Verify ACR login
         run: docker logout ${{ secrets.ACR_SERVER }}
